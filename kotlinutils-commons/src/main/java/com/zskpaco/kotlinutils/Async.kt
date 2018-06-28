@@ -35,30 +35,3 @@ fun <T> T.doAsync(exception: ((Throwable) -> Unit)? = crashLogger, task: Async<T
         }
     }
 }
-
-/**
- * 等待
- */
-fun <T> T.wait(millis: Long = 500, task: T.() -> Unit) {
-    if (Looper.getMainLooper() == Looper.myLooper()) {
-        ContextHelper.handler.postDelayed({
-            task()
-        }, millis)
-    } else {
-        Thread.sleep(millis)
-        task()
-    }
-}
-
-private object BackgroundExecutor {
-    private var executor: ExecutorService =
-            Executors.newScheduledThreadPool(2 * Runtime.getRuntime().availableProcessors())
-
-    fun <T> submit(task: () -> T): Future<T> = executor.submit(task)
-
-}
-
-object ContextHelper {
-    val handler = Handler(Looper.getMainLooper())
-    val mainThread: Thread = Looper.getMainLooper().thread
-}

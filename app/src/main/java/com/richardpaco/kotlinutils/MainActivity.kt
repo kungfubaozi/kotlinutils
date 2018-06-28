@@ -2,8 +2,7 @@ package com.richardpaco.kotlinutils
 
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
-import com.richardpaco.kotlinutils.test.JumpEvent
-import com.richardpaco.kotlinutils.test.ModifyEvent
+import android.widget.Button
 import com.richardpaco.kotlinutils.test.UserInfo
 import com.zskpaco.kotlinutils.*
 
@@ -12,32 +11,31 @@ import com.zskpaco.kotlinutils.*
  */
 class MainActivity : AppCompatActivity() {
 
+    val time = 9f
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        logi("start-register-${System.currentTimeMillis()}")
+        val button: Button = findViewById(R.id.button)
 
         subscriptions {
             subscribe(UserInfo::class) schedule Schedulers.ui observe {
-                logi("UserInfo event ${Thread.currentThread()}")
-            }
 
-            subscribe(ModifyEvent::class) schedule Schedulers.async sticky {
-                logi("ModifyEvent event ${Thread.currentThread()}")
-            }
-
-            subscribe(JumpEvent::class) observe {
-                logi("JumpEvent event ${Thread.currentThread()}")
             }
         }
 
-        UserInfo().post()
+        button throttle time clicks {
+            toast("this is test throttle")
+        }
 
-        ModifyEvent().post()
-
-        JumpEvent().doAsync {
-            post()
+        button.interval(10f) {
+            next {
+                logi("now internal at $this")
+            }
+            completed {
+                logi("finished internal")
+            }
         }
 
     }

@@ -1,7 +1,5 @@
 package com.zskpaco.kotlinutils
 
-import android.app.Activity
-import android.support.v4.app.Fragment
 import java.lang.ref.WeakReference
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.reflect.KClass
@@ -14,14 +12,12 @@ interface Subscribe<T>
 
 interface FixSubscribe<T, S>
 
-internal class FixSubscribeImpl<T, S : Any>(val type: KClass<S>, val subscribes: Subscribe<T>, var schedule: Schedulers) : FixSubscribe<T, S>
-
-internal class SubscribeImpl<T>(val weakRef: WeakReference<T>, var temp: MutableList<Subscription>?) : Subscribe<T>
+class FixSubscribeImpl<T, S : Any>(val type: KClass<S>, val subscribes: Subscribe<T>, var schedule: Schedulers) : FixSubscribe<T, S>
 
 /**
  * 订阅
  */
-infix fun <T, S : Any> Subscribe<T>.subscribe(type: KClass<S>): FixSubscribe<T, S> = FixSubscribeImpl(type, this, Schedulers.immediate)
+inline infix fun <T, S : Any> Subscribe<T>.subscribe(type: KClass<S>): FixSubscribe<T, S> = FixSubscribeImpl(type, this, Schedulers.immediate)
 
 /**
  * 粘性事件
@@ -158,78 +154,6 @@ private fun postEvent(event: Any, sticky: Boolean = false) {
         }
     }
 
-}
-
-//事件
-class Subscription {
-    lateinit var hostName: String
-    lateinit var host: Any
-    lateinit var schedule: Schedulers
-    lateinit var observer: Any.() -> Unit
-    lateinit var type: KClass<Any>
-    var sticky = false
-
-    fun call(event: Any) {
-        if (host is Activity) {
-            val activity = host as Activity
-            if (!activity.isFinishing) {
-                invoke(event)
-            }
-        } else if (host is Fragment) {
-            val fragment = host as Fragment
-            if (!fragment.isDetached) {
-                invoke(event)
-            }
-        } else {
-            invoke(event)
-        }
-    }
-
-    private fun invoke(event: Any) {
-        fun call() {
-            try {
-                observer(event)
-            } catch (e: Exception) {
-                crashLogger.invoke(e)
-            }
-        }
-
-        when (schedule) {
-            Schedulers.immediate -> call()
-            Schedulers.async -> {
-                doAsync {
-                    call()
-                }
-            }
-            Schedulers.ui -> {
-                ContextHelper.handler.post { call() }
-            }
-        }
-    }
-}
-
-internal class EventBus {
-    companion object {
-        /**
-         * 订阅的事件
-         */
-        val subscriptions: MutableMap<KClass<Any>, CopyOnWriteArrayList<Subscription>> = HashMap()
-
-        /**
-         * 粘性事件
-         */
-        val stickyEvents: MutableMap<KClass<Any>, Any> = HashMap()
-
-        /**
-         * 已经注册事件的host
-         */
-        val registered: MutableMap<KClass<Any>, MutableList<KClass<Any>>> = HashMap()
-
-        /**
-         * 被注销的
-         */
-        val disabled: HashSet<KClass<Any>> = hashSetOf()
-    }
 }
 
 private val currentPostingThreadState = object : ThreadLocal<PostingThreadState>() {
