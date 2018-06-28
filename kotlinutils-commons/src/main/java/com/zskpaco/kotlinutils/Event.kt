@@ -6,41 +6,40 @@ import java.lang.ref.WeakReference
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.reflect.KClass
 
-//观察者
-class Observer<T : Any> {
-    lateinit var data: T
-    lateinit var type: KClass<T>
+enum class Schedulers {
+    immediate, ui, async
 }
-
-class FixObserver<T, S : Any>(val type: KClass<S>, val subscribes: Subscribe<T>)
 
 interface Subscribe<T>
 
-internal class AbsSubscribe<T>(val weakRef: WeakReference<T>) : Subscribe<T> {
+interface FixSubscribe<T, S>
 
-    var temp: MutableList<Subscription>? = null
+internal class FixSubscribeImpl<T, S : Any>(val type: KClass<S>, val subscribes: Subscribe<T>, var schedule: Schedulers) : FixSubscribe<T, S>
+
+internal class SubscribeImpl<T>(val weakRef: WeakReference<T>, var temp: MutableList<Subscription>?) : Subscribe<T>
+
+/**
+ * 订阅
+ */
+infix fun <T, S : Any> Subscribe<T>.subscribe(type: KClass<S>): FixSubscribe<T, S> = FixSubscribeImpl(type, this, Schedulers.immediate)
+
+/**
+ * 粘性事件
+ */
+infix fun <T, S : Any> FixSubscribe<T, S>.sticky(observer: S.() -> Unit) {
+    (this as FixSubscribeImpl).subscribes.subscribe(true, type, observer, schedule)
 }
 
-//具体订阅
-@Deprecated("Use infix method")
-fun <T, S : Any> Subscribe<T>.eventOf(type: KClass<S>, observer: Observer<S>.() -> Unit) {
-    subscribe(false, type, observer)
+infix fun <T, S : Any> FixSubscribe<T, S>.observe(observer: S.() -> Unit) {
+    (this as FixSubscribeImpl).subscribes.subscribe(false, type, observer, schedule)
 }
 
-//具体订阅
-@Deprecated("Use infix method")
-fun <T, S : Any> Subscribe<T>.stickyOf(type: KClass<S>, observer: Observer<S>.() -> Unit) {
-    subscribe(true, type, observer)
-}
-
-fun <T, S : Any> Subscribe<T>.subscribe(type: KClass<S>): FixObserver<T, S> = FixObserver(type, this)
-
-infix fun <T, S : Any> FixObserver<T, S>.sticky(observer: Observer<S>.() -> Unit) {
-    subscribes.subscribe(true, type, observer)
-}
-
-infix fun <T, S : Any> FixObserver<T, S>.just(observer: Observer<S>.() -> Unit) {
-    subscribes.subscribe(false, type, observer)
+/**
+ * 选择模式
+ */
+infix fun <T, S : Any> FixSubscribe<T, S>.schedule(schedule: Schedulers): FixSubscribe<T, S> {
+    (this as FixSubscribeImpl).schedule = schedule
+    return this
 }
 
 /**
@@ -48,8 +47,7 @@ infix fun <T, S : Any> FixObserver<T, S>.just(observer: Observer<S>.() -> Unit) 
  * 不能含有相同类型的subscribe,否则会被替换掉
  */
 fun <T> T.subscriptions(subscribes: Subscribe<T>.() -> Unit): Subscribe<T> {
-    val sub = AbsSubscribe(WeakReference(this))
-    sub.temp = arrayListOf()
+    val sub = SubscribeImpl(WeakReference(this), arrayListOf())
     sub.subscribes()
     val fromHost = this as Any
     val kFromHost = fromHost::class as KClass<Any>
@@ -117,14 +115,15 @@ fun <T : Any> Async<T>.postSticky() {
     this.ref.get()?.postSticky()
 }
 
-private fun <T, S : Any> Subscribe<T>.subscribe(isSticky: Boolean, eventType: KClass<S>, concrete: Observer<S>.() -> Unit) {
-    val sub = this as AbsSubscribe<T>
+private fun <T, S : Any> Subscribe<T>.subscribe(isSticky: Boolean, eventType: KClass<S>, concrete: S.() -> Unit, scheduleMode: Schedulers) {
+    val sub = this as SubscribeImpl<T>
     val formHost = sub.weakRef.get()!! as Any
     temp?.add(Subscription().apply {
         host = formHost
         type = eventType as KClass<Any>
-        observer = concrete as Observer<Any>.() -> Unit
+        observer = concrete as Any.() -> Unit
         sticky = isSticky
+        schedule = scheduleMode
         hostName = formHost.javaClass.canonicalName
     })
 }
@@ -162,10 +161,11 @@ private fun postEvent(event: Any, sticky: Boolean = false) {
 }
 
 //事件
-internal class Subscription {
+class Subscription {
     lateinit var hostName: String
     lateinit var host: Any
-    lateinit var observer: Observer<Any>.() -> Unit
+    lateinit var schedule: Schedulers
+    lateinit var observer: Any.() -> Unit
     lateinit var type: KClass<Any>
     var sticky = false
 
@@ -186,13 +186,24 @@ internal class Subscription {
     }
 
     private fun invoke(event: Any) {
-        try {
-            observer(Observer<Any>().apply {
-                data = event
-                type = this@Subscription.type
-            })
-        } catch (e: Exception) {
-            crashLogger.invoke(e)
+        fun call() {
+            try {
+                observer(event)
+            } catch (e: Exception) {
+                crashLogger.invoke(e)
+            }
+        }
+
+        when (schedule) {
+            Schedulers.immediate -> call()
+            Schedulers.async -> {
+                doAsync {
+                    call()
+                }
+            }
+            Schedulers.ui -> {
+                ContextHelper.handler.post { call() }
+            }
         }
     }
 }

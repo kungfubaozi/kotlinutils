@@ -1,1 +1,1 @@
-include ':app', ':kotlinutils-commons', ':kotlinutils-luban', ':kotlinutils-http', ':kotlinutils-notify', ':kotlinutils-rxbus'
+include ':app', ':kotlinutils-commons', ':kotlinutils-http', ':kotlinutils-notify'

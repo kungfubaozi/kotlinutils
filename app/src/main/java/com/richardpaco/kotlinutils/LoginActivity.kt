@@ -24,8 +24,8 @@ class LoginActivity : AppCompatActivity() {
         }
 
         subscriptions {
-            subscribe(JumpEvent::class) sticky {
-                logi("receiver jump event")
+            subscribe(JumpEvent::class) observe {
+
             }
         }
     }

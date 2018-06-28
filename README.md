@@ -1,6 +1,6 @@
 # KotlinUtils
 
-##### shredPreferences
+##### sharedPreferences
 
 ```kotlin
 //save
@@ -80,28 +80,37 @@ wait(millis){
 }
 ```
 
-#### eventbus
+#### simpleEventbus
 
 ```kotlin
 //订阅
 //订阅里只能订阅一种类型，相同类型暂时不支持，如果有相同类型则会覆盖上一个
 subscriptions {
     //订阅指定类型
-    subscribe(type) just {
+    subscribe(type) observe {
         
     }
     //订阅粘性事件
     subscribe(type) sticky {
         
     }
+    
+    //线程操作
+    //Schedulers.ui / async / immediate
+    subscribe(type) schedule Schedulers.ui observe {
+        
+    }
 }
 
 eg :
 subscriptions {
-    subscribe(UserInfo::class) just {
+    subscribe(UserInfo::class) observe {
         //TODO
     }
     subscribe(ModifyEvent::class) sticky {
+        //TODO
+    }
+    subscribe(JumpEvent::class) schedule Schedulers.async observe {
         //TODO
     }
 }

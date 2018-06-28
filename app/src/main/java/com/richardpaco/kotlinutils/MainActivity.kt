@@ -1,13 +1,11 @@
 package com.richardpaco.kotlinutils
 
-import android.content.Intent
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import com.richardpaco.kotlinutils.test.JumpEvent
 import com.richardpaco.kotlinutils.test.ModifyEvent
 import com.richardpaco.kotlinutils.test.UserInfo
 import com.zskpaco.kotlinutils.*
-import kotlinx.android.synthetic.main.activity_main.*
 
 /**
  * 基本操作：异步，uiThread，等待，toast，事件处理
@@ -21,35 +19,32 @@ class MainActivity : AppCompatActivity() {
         logi("start-register-${System.currentTimeMillis()}")
 
         subscriptions {
-            subscribe(ModifyEvent::class) sticky {
-                logi("receiver modify event")
+            subscribe(UserInfo::class) schedule Schedulers.ui observe {
+                logi("UserInfo event ${Thread.currentThread()}")
             }
 
-            subscribe(UserInfo::class) just {
-                logi("username ${this.data.username}")
-
-                logi("end-receiver-${System.currentTimeMillis()}")
+            subscribe(ModifyEvent::class) schedule Schedulers.async sticky {
+                logi("ModifyEvent event ${Thread.currentThread()}")
             }
 
+            subscribe(JumpEvent::class) observe {
+                logi("JumpEvent event ${Thread.currentThread()}")
+            }
         }
 
-        logi("end-register-${System.currentTimeMillis()}")
+        UserInfo().post()
 
-        UserInfo().apply {
-            username = "username"
-            password = "password"
-        }.post()
+        ModifyEvent().post()
 
-        button.setOnClickListener {
-            JumpEvent().postSticky()
-            startActivity(Intent(this@MainActivity, LoginActivity::class.java))
-            finish()
+        JumpEvent().doAsync {
+            post()
         }
+
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        unsubscribe()
+
 
         logi("onDestroy")
 
