@@ -1,14 +1,14 @@
 # KotlinUtils
 
-### Functions:
+### Commons
 
  +  SharedPreferences
- +  Async   异步辅助
- +  Toast  简单操作Toast
- +  SimpleEventBus     简单实用的事件总线
- +  Interval   轮训，计时用
- +  Event  view的一些基本的事件
- +  Throttle   节流器，用来操作view等，在一段时间内不生效
+ +  Async
+ +  Toast 
+ +  SimpleEventBus
+ +  Interval
+ +  Event 
+ +  Throttle
 
 ##### sharedPreferences
 
