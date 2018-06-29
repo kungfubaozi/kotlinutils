@@ -1,8 +1,14 @@
 # KotlinUtils
 
+### Functions:
 
-
-[TOC]
+ +  SharedPreferences
+ +  Async   异步辅助
+ +  Toast  简单操作Toast
+ +  SimpleEventBus     简单实用的事件总线
+ +  Interval   轮训，计时用
+ +  Event  view的一些基本的事件
+ +  Throttle   节流器，用来操作view等，在一段时间内不生效
 
 ##### sharedPreferences
 
@@ -58,18 +64,7 @@ toast("")
 toastLong("")
 ```
 
-#### wait
-
-```kotlin
-//等待执行 默认为500ms
-wait { ... }
-
-T.wait { ... }
-
-wait(millis){ ... }
-```
-
-#### simpleEventbus
+####  simpleEventbus
 
 ```kotlin
 //订阅 支持infix写法
