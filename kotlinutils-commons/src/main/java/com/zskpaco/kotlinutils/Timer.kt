@@ -1,8 +1,5 @@
 package com.zskpaco.kotlinutils
 
-import android.os.Handler
-import android.os.Looper
-import android.os.Message
 import java.lang.ref.WeakReference
 
 /**
@@ -14,8 +11,6 @@ import java.lang.ref.WeakReference
 /**
  * 计时器
  */
-interface Internal<T>
-
 fun <T> T.interval(second: Float, internal: Internal<T>.() -> Unit): Internal<T> {
     val impl = InternalImpl<T>(second, WeakReference(this))
     impl.internal()
@@ -23,42 +18,31 @@ fun <T> T.interval(second: Float, internal: Internal<T>.() -> Unit): Internal<T>
     return impl
 }
 
+/**
+ * 计时器 开始计时
+ */
+inline fun <T> Internal<T>.start(noinline event: T.() -> Unit) {
+    (this as InternalImpl<T>).start = event
+}
+
+/**
+ * 计时器 计时时间回调
+ */
 inline fun <T> Internal<T>.next(noinline event: Int.() -> Unit) {
     (this as InternalImpl<T>).next = event
 }
 
+/**
+ * 计时器 计时结束
+ */
 inline fun <T> Internal<T>.completed(noinline event: T.() -> Unit) {
     (this as InternalImpl<T>).completed = event
 }
 
-class InternalImpl<T>(private val second: Float, val ref: WeakReference<T>) : Internal<T> {
-    lateinit var next: Int.() -> Unit
-    lateinit var completed: T.() -> Unit
-
-    fun begin() {
-        val count = when {
-            second >= 1f -> 1000
-            second == 0f -> 0
-            second < 0.1f -> 10
-            else -> 100
-        }
-        var limit = (second * 1000 / count).toInt()
-        val handler = object : Handler(Looper.getMainLooper()) {
-            override fun handleMessage(msg: Message?) {
-                super.handleMessage(msg)
-                if (msg!!.what == 1) {
-                    if (limit == 0) {
-                        completed(ref.get()!!)
-                    } else {
-                        next(limit)
-                        this.postDelayed({
-                            limit--
-                            sendEmptyMessage(1)
-                        }, count.toLong())
-                    }
-                }
-            }
-        }
-        handler.sendEmptyMessage(1)
-    }
+/**
+ * 节流器
+ */
+inline fun <T> T.throttle(second: Float, noinline listener: T.() -> Unit) {
+    val impl = ThrottleImpl<T>(WeakReference(this), second, false)
+    impl.event(listener)
 }

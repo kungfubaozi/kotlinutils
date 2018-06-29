@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.SharedPreferences
 import android.os.Handler
 import android.os.Looper
-import android.os.Message
 import android.support.v4.app.Fragment
 import android.view.View
 import java.io.*
@@ -119,7 +118,7 @@ internal object ContextHelper {
 /**
  * EventBus
  */
-internal class SubscribeImpl<T>(val weakRef: WeakReference<T>, var temp: MutableList<Subscription>?) : Subscribe<T>
+internal class SubscribeImpl(val weakRef: WeakReference<Any>, var temp: MutableList<Subscription>?) : Subscriptions
 
 internal class EventBus {
     companion object {
@@ -187,24 +186,6 @@ internal class Subscription {
             }
             Schedulers.ui -> {
                 ContextHelper.handler.post { call() }
-            }
-        }
-    }
-}
-
-/**
- * View
- */
-internal class ViewThrottleImpl<T>(private val ref: WeakReference<T>, val sec: Float, private var status: Boolean) : ViewThrottle<T> {
-    fun clicks(listener: T.() -> Unit) {
-        val view = ref.get()!! as View
-        view.setOnClickListener {
-            if (!status) {
-                status = true
-                listener(view as T)
-                ContextHelper.handler.postDelayed({
-                    status = false
-                }, (sec * 1000).toLong())
             }
         }
     }

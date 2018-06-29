@@ -15,12 +15,10 @@ import java.lang.ref.WeakReference
 /**
  * 节流器
  */
-interface ViewThrottle<T>
+infix fun <T : View> T.throttle(second: Float): Throttle<T> = ThrottleImpl(WeakReference(this), second, false)
 
-infix fun <T : View> T.throttle(sec: Float): ViewThrottle<T> = ViewThrottleImpl(WeakReference(this), sec, false)
-
-infix fun <T> ViewThrottle<T>.clicks(listener: T.() -> Unit) {
-    val impl = this as ViewThrottleImpl<T>
+infix fun <T> Throttle<T>.clicks(listener: T.() -> Unit) {
+    val impl = this as ThrottleImpl<T>
     impl.clicks(listener)
 }
 

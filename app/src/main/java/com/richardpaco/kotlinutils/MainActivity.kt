@@ -3,6 +3,8 @@ package com.richardpaco.kotlinutils
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.widget.Button
+import com.richardpaco.kotlinutils.test.JumpEvent
+import com.richardpaco.kotlinutils.test.ModifyEvent
 import com.richardpaco.kotlinutils.test.UserInfo
 import com.zskpaco.kotlinutils.*
 
@@ -20,23 +22,26 @@ class MainActivity : AppCompatActivity() {
         val button: Button = findViewById(R.id.button)
 
         subscriptions {
-            subscribe(UserInfo::class) schedule Schedulers.ui observe {
+            subscribe<UserInfo>().observe {
+                logi("receiver UserInfo event")
+            }
 
+            subscribe<JumpEvent>(Schedulers.ui).observe {
+                logi("receiver JumpEvent event")
+            }
+
+            subscribe<ModifyEvent>().sticky {
+                logi("receiver ModifyEvent sticky event")
             }
         }
 
-        button throttle time clicks {
-            toast("this is test throttle")
+        button.throttle(5f).clicks {
+            UserInfo().post()
         }
 
-        button.interval(10f) {
-            next {
-                logi("now internal at $this")
-            }
-            completed {
-                logi("finished internal")
-            }
-        }
+    }
+
+    fun test(event: ModifyEvent){
 
     }
 

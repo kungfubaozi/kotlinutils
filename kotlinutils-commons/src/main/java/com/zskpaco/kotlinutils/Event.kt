@@ -8,42 +8,28 @@ enum class Schedulers {
     immediate, ui, async
 }
 
-interface Subscribe<T>
-
-interface FixSubscribe<T, S>
-
-class FixSubscribeImpl<T, S : Any>(val type: KClass<S>, val subscribes: Subscribe<T>, var schedule: Schedulers) : FixSubscribe<T, S>
-
 /**
  * 订阅
  */
-inline infix fun <T, S : Any> Subscribe<T>.subscribe(type: KClass<S>): FixSubscribe<T, S> = FixSubscribeImpl(type, this, Schedulers.immediate)
+inline fun <reified S : Any> Subscriptions.subscribe(schedule: Schedulers = Schedulers.immediate): FixSubscribe<S> = FixSubscribeImpl(S::class, this, schedule!!)
 
 /**
  * 粘性事件
  */
-infix fun <T, S : Any> FixSubscribe<T, S>.sticky(observer: S.() -> Unit) {
+infix fun <S : Any> FixSubscribe<S>.sticky(observer: S.() -> Unit) {
     (this as FixSubscribeImpl).subscribes.subscribe(true, type, observer, schedule)
 }
 
-infix fun <T, S : Any> FixSubscribe<T, S>.observe(observer: S.() -> Unit) {
+infix fun <S : Any> FixSubscribe<S>.observe(observer: S.() -> Unit) {
     (this as FixSubscribeImpl).subscribes.subscribe(false, type, observer, schedule)
-}
-
-/**
- * 选择模式
- */
-infix fun <T, S : Any> FixSubscribe<T, S>.schedule(schedule: Schedulers): FixSubscribe<T, S> {
-    (this as FixSubscribeImpl).schedule = schedule
-    return this
 }
 
 /**
  * 订阅
  * 不能含有相同类型的subscribe,否则会被替换掉
  */
-fun <T> T.subscriptions(subscribes: Subscribe<T>.() -> Unit): Subscribe<T> {
-    val sub = SubscribeImpl(WeakReference(this), arrayListOf())
+fun <T> T.subscriptions(subscribes: Subscriptions.() -> Unit): Subscriptions {
+    val sub = SubscribeImpl(WeakReference(this as Any), arrayListOf())
     sub.subscribes()
     val fromHost = this as Any
     val kFromHost = fromHost::class as KClass<Any>
@@ -111,8 +97,8 @@ fun <T : Any> Async<T>.postSticky() {
     this.ref.get()?.postSticky()
 }
 
-private fun <T, S : Any> Subscribe<T>.subscribe(isSticky: Boolean, eventType: KClass<S>, concrete: S.() -> Unit, scheduleMode: Schedulers) {
-    val sub = this as SubscribeImpl<T>
+private fun <S : Any> Subscriptions.subscribe(isSticky: Boolean, eventType: KClass<S>, concrete: S.() -> Unit, scheduleMode: Schedulers) {
+    val sub = this as SubscribeImpl
     val formHost = sub.weakRef.get()!! as Any
     temp?.add(Subscription().apply {
         host = formHost

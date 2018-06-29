@@ -1,5 +1,9 @@
 # KotlinUtils
 
+
+
+[TOC]
+
 ##### sharedPreferences
 
 ```kotlin
@@ -36,21 +40,12 @@ enableSharedPreferences("prefs name")
 
 ```kotlin
 //异步
-doAsync{
-    //TODO 
+doAsync { ... }
+doAsync { //使用主线程
+    uiThread { ... }
 }
 
-doAsync {
-    
-    //使用主线程
-    uiThread {
-        
-    }
-}
-
-T.doAsync {
-    //TODO
-}
+T.doAsync { ... }
 ```
 
 ##### toast
@@ -67,52 +62,33 @@ toastLong("")
 
 ```kotlin
 //等待执行 默认为500ms
-wait {
-    
-}
+wait { ... }
 
-T.wait {
-    
-}
+T.wait { ... }
 
-wait(millis){
-    
-}
+wait(millis){ ... }
 ```
 
 #### simpleEventbus
 
 ```kotlin
-//订阅
+//订阅 支持infix写法
 //订阅里只能订阅一种类型，相同类型暂时不支持，如果有相同类型则会覆盖上一个
 subscriptions {
     //订阅指定类型
-    subscribe(type) observe {
-        
-    }
+    subscribe<Type>().observe { ... }
     //订阅粘性事件
-    subscribe(type) sticky {
-        
-    }
-    
+    subscribe<Type>().sticky { ... }
     //线程操作
     //Schedulers.ui / async / immediate
-    subscribe(type) schedule Schedulers.ui observe {
-        
-    }
+    subscribe<Type>(Schedulers.ui).observe { ... }
 }
 
 eg :
 subscriptions {
-    subscribe(UserInfo::class) observe {
-        //TODO
-    }
-    subscribe(ModifyEvent::class) sticky {
-        //TODO
-    }
-    subscribe(JumpEvent::class) schedule Schedulers.async observe {
-        //TODO
-    }
+    subscribe<UserInfo>().observe { //TODO }
+    subscribe<ModifyEvent>().sticky { //TODO }
+    subscribe<JumpEvent>(Schedulers.async).observe { //TODO }
 }
 
 
@@ -134,5 +110,68 @@ info.doAsync {
 
 unsubscribe() //取消订阅 必须要加
 
+```
+
+#### view
+
+```kotlin
+//点击事件
+view.clicks { ... }
+//文本改变
+editText.textChanges { ... }
+```
+
+#### interval
+
+```kotlin
+T.interval(10f) { //整数为秒 10f为10s 0.5f为0.5s也就是500ms
+    //开始时
+    start { ... }
+    //完成时
+    completed { ... }
+    //计时时间回调（倒数）
+    next { ... }
+}
+```
+
+#### throttle
+
+```kotlin
+//节流器
+//使用在view事件中
+view.throttle(5f).clicks { //也支持这样写 view throttle 5f clicks {...}
+    //TODO
+}
+
+//使用在内部里
+view.clicks {
+    throttle(5f) {
+        //TODO
+    }
+}
+
+eg : 
+//支持infix
+button throttle 5f clicks {
+    interval(5f) {
+        start {
+            isEnabled = false
+        }
+        completed {
+            isEnabled = true
+        }
+        next {
+            text = this.toString()
+        }
+    }
+}
+//or 
+button.clicks {
+    throttle(5f) {
+        interval(5f) {
+            ...
+        }
+    }
+}
 ```
 
